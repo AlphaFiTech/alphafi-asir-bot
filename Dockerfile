@@ -11,5 +11,8 @@ RUN npm ci --production
 # Copy application source code
 COPY bot.js ./
 
+# Run as non-root user for security
+USER node
+
 # Start the bot
 CMD ["node", "bot.js"]
