@@ -27,7 +27,7 @@ const POLICY_ID = parseInt(process.env.ESCALATION_POLICY_ID, 10);
 const REQUESTER_EMAIL = process.env.REQUESTER_EMAIL || "admin@alphafi.xyz";
 
 // Use numeric User IDs instead of usernames (more secure/immutable)
-const ALLOWED_USERS = process.env.ALLOWED_USER_IDS ? process.env.ALLOWED_USER_IDS.split(',').map(id => id.trim()) : [];
+const ALLOWED_USERS = process.env.ALLOWED_USER_IDS ? process.env.ALLOWED_USER_IDS.split(',').map(id => id.trim()).filter(Boolean) : [];
 
 // Startup warning if bot is open-by-default
 if (ALLOWED_USERS.length === 0) {
