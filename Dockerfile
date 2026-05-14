@@ -1,5 +1,4 @@
-# Use Node 18 Alpine for a small, secure production image
-FROM node:18-alpine
+FROM node:22-alpine
 
 # Set working directory
 WORKDIR /app
