@@ -1,7 +1,7 @@
 {
-  "name": "asir-bot",
+  "name": "alphafi-betterstack",
   "version": "1.0.0",
-  "description": "AlphaFi Incident Escalation Bridge (Telegram to Better Stack)",
+  "description": "AlphaFi Security and Incident Response (ASIR) Bot",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js",
@@ -18,7 +18,7 @@
   "license": "ISC",
   "type": "commonjs",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
   },
   "dependencies": {
     "axios": "^1.16.0",
