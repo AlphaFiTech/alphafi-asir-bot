@@ -145,6 +145,10 @@ bot.command('alert', async (ctx) => {
     }
 });
 
+bot.catch((err, ctx) => {
+    console.error(`[Bot Error] Update type: ${ctx.updateType}`, err);
+});
+
 // Start the bot with protection against old/pending updates
 bot.launch({
     dropPendingUpdates: true
