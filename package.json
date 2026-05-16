@@ -2,9 +2,13 @@
   "name": "alphafi-betterstack",
   "version": "1.0.0",
   "description": "AlphaFi Security and Incident Response (ASIR) Bot",
-  "main": "bot.js",
+  "main": "bot.ts",
   "scripts": {
-    "start": "node bot.js",
+    "start": "tsx bot.ts",
+    "lint": "eslint .",
+    "fmt": "prettier --write .",
+    "fmt:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -16,13 +20,22 @@
   ],
   "author": "Harsha Kodali <harsha@alphafi.xyz>",
   "license": "ISC",
-  "type": "commonjs",
   "engines": {
     "node": ">=22.0.0"
   },
   "dependencies": {
     "axios": "^1.16.0",
     "dotenv": "^17.4.2",
-    "telegraf": "^4.16.3"
+    "telegraf": "^4.16.3",
+    "tsx": "^4.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.8.0",
+    "@typescript-eslint/eslint-plugin": "^8.59.3",
+    "@typescript-eslint/parser": "^8.59.3",
+    "eslint": "^10.4.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.3",
+    "typescript": "^6.0.3"
   }
 }
