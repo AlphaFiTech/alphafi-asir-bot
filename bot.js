@@ -23,8 +23,14 @@ if (missingEnv.length > 0) {
 // Configuration
 const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const BETTER_STACK_TOKEN = process.env.BETTER_STACK_API_TOKEN;
-const POLICY_ID = parseInt(process.env.ESCALATION_POLICY_ID, 10);
+const POLICY_ID = process.env.ESCALATION_POLICY_ID;
 const REQUESTER_EMAIL = process.env.REQUESTER_EMAIL || "admin@alphafi.xyz";
+
+// Validate ESCALATION_POLICY_ID is a valid integer string (Better Stack expects numeric)
+if (!/^\d+$/.test(POLICY_ID)) {
+    console.error(`❌ CRITICAL ERROR: ESCALATION_POLICY_ID must be a valid integer, got: "${POLICY_ID}"`);
+    process.exit(1);
+}
 
 // Use numeric User IDs instead of usernames (more secure/immutable)
 const ALLOWED_USERS = process.env.ALLOWED_USER_IDS ? process.env.ALLOWED_USER_IDS.split(',').map(id => id.trim()).filter(Boolean) : [];
@@ -83,35 +89,40 @@ bot.command('alert', async (ctx) => {
         return ctx.reply(`⏳ Slow down! You can trigger another alert in ${remainingSeconds}s.`);
     }
 
-    const description = ctx.message.text.split(' ').slice(1).join(' ') || "Unspecified issue reported via AlphaFi SIR";
+    // Sanitize user input: strip control characters and HTML tags before sending to Better Stack
+    const rawDescription = ctx.message.text.split(' ').slice(1).join(' ');
+    const description = rawDescription.replace(/[\x00-\x1F\x7F]/g, '').replace(/<[^>]*>/g, '').trim()
+        || "Unspecified issue reported via AlphaFi SIR";
+    const sanitizedUserLabel = rawUserLabel.replace(/[\x00-\x1F\x7F]/g, '').replace(/<[^>]*>/g, '').trim();
 
+    let statusMsg = null;
     try {
         /**
-         * ASIR Policy Step 2: 
+         * ASIR Policy Step 2:
          * ASIR_bot responds by triggering BEP API
          */
-        const statusMsg = await ctx.reply('⏳ ASIR_bot: Initiating Better Stack Escalation Policy...');
+        statusMsg = await ctx.reply('⏳ ASIR_bot: Initiating Better Stack Escalation Policy...');
 
         const payload = {
             name: `AlphaFi Alert: ${description.substring(0, 50)}`,
-            summary: `Detailed Report: ${description.substring(0, 1000)} | Triggered by ${rawUserLabel}`,
+            summary: `Detailed Report: ${description.substring(0, 1000)} | Triggered by ${sanitizedUserLabel}`,
             requester_email: REQUESTER_EMAIL,
             policy_id: POLICY_ID,
-            call: true 
+            call: true
         };
 
-        const response = await axios.post(BETTER_STACK_URL, payload, { 
+        const response = await axios.post(BETTER_STACK_URL, payload, {
             headers: HEADERS,
             timeout: 10000 // 10s timeout to prevent hanging
         });
 
         /**
-         * ASIR Policy Step 3: 
+         * ASIR Policy Step 3:
          * ASIR_bot closes the call (Interaction closure in Telegram)
          */
         if (response.status === 201) {
             const incidentId = response.data.data.id;
-            
+
             // Set cooldown only on successful API response
             cooldowns.set(userId, Date.now());
 
@@ -125,7 +136,7 @@ bot.command('alert', async (ctx) => {
                 `👤 *Origin:* ${userLabel}`,
                 { parse_mode: 'Markdown' }
             );
-            
+
             console.log(`[ASIR Policy Success] Incident ${incidentId} raised for AlphaFi by ${rawUserLabel}.`);
         } else {
             // Handle non-201 unexpected success codes
@@ -141,7 +152,18 @@ bot.command('alert', async (ctx) => {
     } catch (error) {
         const statusCode = error.response?.status ? `(Status: ${error.response.status})` : '';
         console.error('ASIR Policy Failure:', error.response?.data || error.message);
-        await ctx.reply(`❌ ASIR_bot Error: Failed to trigger Escalation Policy. ${statusCode}\nCheck API logs.`);
+        // Edit the original status message if it was sent; otherwise send a new reply
+        if (statusMsg) {
+            await ctx.telegram.editMessageText(
+                ctx.chat.id,
+                statusMsg.message_id,
+                null,
+                `❌ *ASIR_bot Error: Failed to trigger Escalation Policy* ${escapeMarkdown(statusCode)}\nCheck API logs.`,
+                { parse_mode: 'Markdown' }
+            );
+        } else {
+            await ctx.reply(`❌ ASIR_bot Error: Failed to trigger Escalation Policy. ${statusCode}\nCheck API logs.`);
+        }
     }
 });
 
