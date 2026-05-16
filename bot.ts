@@ -1,6 +1,9 @@
 import 'dotenv/config';
 import { Telegraf, Context } from 'telegraf';
 import axios from 'axios';
+import pino from 'pino';
+
+const log = pino({ level: process.env.LOG_LEVEL ?? 'info' });
 
 function escapeMarkdown(text: string): string {
   if (!text) return '';
@@ -16,7 +19,7 @@ const REQUIRED_ENV = ['TELEGRAM_BOT_TOKEN', 'BETTER_STACK_API_TOKEN', 'ESCALATIO
 const missingEnv = REQUIRED_ENV.filter((key) => !process.env[key]);
 
 if (missingEnv.length > 0) {
-  console.error(`❌ CRITICAL ERROR: Missing required environment variables: ${missingEnv.join(', ')}`);
+  log.fatal({ missingEnv }, 'Missing required environment variables');
   process.exit(1);
 }
 
@@ -27,7 +30,7 @@ const REQUESTER_EMAIL = process.env.REQUESTER_EMAIL ?? 'admin@alphafi.xyz';
 
 // Validate ESCALATION_POLICY_ID is a valid integer string (Better Stack expects numeric)
 if (!/^\d+$/.test(POLICY_ID)) {
-  console.error(`❌ CRITICAL ERROR: ESCALATION_POLICY_ID must be a valid integer, got: "${POLICY_ID}"`);
+  log.fatal({ POLICY_ID }, 'ESCALATION_POLICY_ID must be a valid integer');
   process.exit(1);
 }
 
@@ -37,7 +40,7 @@ const ALLOWED_USERS: string[] = process.env.ALLOWED_USER_IDS
   : [];
 
 if (ALLOWED_USERS.length === 0) {
-  console.warn('⚠️  [SECURITY WARN] ALLOWED_USER_IDS not set. All Telegram users can trigger alerts!');
+  log.warn('ALLOWED_USER_IDS not set — all Telegram users can trigger alerts');
 }
 
 const bot = new Telegraf(TELEGRAM_TOKEN);
@@ -74,7 +77,7 @@ bot.command('alert', async (ctx: Context) => {
   const userLabel = escapeMarkdown(rawUserLabel);
 
   if (ALLOWED_USERS.length > 0 && !ALLOWED_USERS.includes(userId)) {
-    console.warn(`[Unauthorized Access Attempt] User ID ${userId} (${rawUserLabel}) tried to trigger an alert.`);
+    log.warn({ userId, userLabel: rawUserLabel }, 'Unauthorized access attempt');
     return ctx.reply('🚫 Error: You are not authorized to trigger AlphaFi Escalation Policies.');
   }
 
@@ -131,7 +134,7 @@ bot.command('alert', async (ctx: Context) => {
         { parse_mode: 'Markdown' },
       );
 
-      console.log(`[ASIR Policy Success] Incident ${incidentId} raised for AlphaFi by ${rawUserLabel}.`);
+      log.info({ incidentId, userId, userLabel: rawUserLabel }, 'ASIR policy triggered successfully');
     } else {
       await ctx.telegram.editMessageText(
         ctx.chat!.id,
@@ -144,7 +147,10 @@ bot.command('alert', async (ctx: Context) => {
   } catch (error) {
     const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string };
     const statusCode = axiosError.response?.status ? `(Status: ${axiosError.response.status})` : '';
-    console.error('ASIR Policy Failure:', axiosError.response?.data ?? axiosError.message);
+    log.error(
+      { userId, status: axiosError.response?.status, detail: axiosError.response?.data ?? axiosError.message },
+      'ASIR policy trigger failed',
+    );
 
     if (statusMsg) {
       await ctx.telegram.editMessageText(
@@ -183,14 +189,14 @@ bot.command('help', (ctx: Context) => {
 });
 
 bot.catch((err: unknown, ctx: Context) => {
-  console.error(`[Bot Error] Update type: ${ctx.updateType}`, err);
+  log.error({ updateType: ctx.updateType, err }, 'Unhandled bot error');
 });
 
 bot
   .launch({ dropPendingUpdates: true })
-  .then(() => console.log('✅ AlphaFi ASIR_bot is running on remote architecture...'))
+  .then(() => log.info('AlphaFi ASIR_bot is running'))
   .catch((err: Error) => {
-    console.error('❌ CRITICAL ERROR: Failed to launch ASIR_bot:', err.message);
+    log.fatal({ err: err.message }, 'Failed to launch ASIR_bot');
     process.exit(1);
   });
 
