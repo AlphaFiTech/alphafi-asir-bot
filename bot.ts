@@ -179,6 +179,7 @@ bot.command('help', (ctx: Context) => {
   return ctx.reply(
     `*AlphaFi ASIR Bot — Available Commands*\n\n` +
       `\`/alert <description>\` — Trigger the Better Stack escalation policy and phone the on-call team.\n` +
+      `\`/status\` — Check if the bot is running and connected to Better Stack.\n` +
       `\`/help\` — Show this message.\n\n` +
       `*Notes:*\n` +
       `• Only authorized users can trigger alerts.\n` +
@@ -186,6 +187,58 @@ bot.command('help', (ctx: Context) => {
       `• Failed API calls do not consume your cooldown.`,
     { parse_mode: 'Markdown' },
   );
+});
+
+bot.command('status', async (ctx: Context) => {
+  const statusMsg = await ctx.reply('⏳ Checking Better Stack connectivity...');
+
+  try {
+    const response = await axios.get(`${BETTER_STACK_URL}?per_page=1`, {
+      headers: HEADERS,
+      timeout: 10000,
+    });
+
+    const authorized = ALLOWED_USERS.length === 0 || ALLOWED_USERS.includes(ctx.from!.id.toString());
+    const authLine = ALLOWED_USERS.length === 0
+      ? '⚠️ *Auth:* No allowlist set — all users can trigger alerts'
+      : `🔒 *Auth:* Allowlist active (${ALLOWED_USERS.length} user${ALLOWED_USERS.length === 1 ? '' : 's'})`;
+
+    const policyLine = authorized
+      ? `📋 *Policy ID:* \`${POLICY_ID}\``
+      : `📋 *Policy ID:* _restricted_`;
+
+    log.info({ userId: ctx.from!.id.toString(), httpStatus: response.status }, '/status check passed');
+
+    await ctx.telegram.editMessageText(
+      ctx.chat!.id,
+      statusMsg.message_id,
+      undefined,
+      `✅ *ASIR Bot Status*\n\n` +
+        `🤖 *Bot:* Running\n` +
+        `🌐 *Better Stack API:* Connected (HTTP ${response.status})\n` +
+        `${policyLine}\n` +
+        `${authLine}`,
+      { parse_mode: 'Markdown' },
+    );
+  } catch (error) {
+    const axiosError = error as { response?: { status?: number }; message?: string };
+    const detail = axiosError.response?.status
+      ? `HTTP ${axiosError.response.status}`
+      : (axiosError.message ?? 'unknown error');
+
+    log.error({ userId: ctx.from!.id.toString(), detail }, '/status check failed');
+
+    await ctx.telegram.editMessageText(
+      ctx.chat!.id,
+      statusMsg.message_id,
+      undefined,
+      `❌ *ASIR Bot Status*\n\n` +
+        `🤖 *Bot:* Running\n` +
+        `🌐 *Better Stack API:* Unreachable (${escapeMarkdown(detail)})\n\n` +
+        `_The bot cannot trigger alerts until connectivity is restored._`,
+      { parse_mode: 'Markdown' },
+    );
+  }
 });
 
 bot.catch((err: unknown, ctx: Context) => {
