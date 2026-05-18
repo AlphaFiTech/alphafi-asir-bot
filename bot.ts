@@ -190,6 +190,22 @@ bot.command('help', (ctx: Context) => {
 });
 
 bot.command('status', async (ctx: Context) => {
+  const userId = ctx.from!.id.toString();
+  const rawUserLabel = ctx.from!.username ? `@${ctx.from!.username}` : ctx.from!.first_name;
+
+  if (ALLOWED_USERS.length > 0 && !ALLOWED_USERS.includes(userId)) {
+    log.warn({ userId, userLabel: rawUserLabel }, 'Unauthorized /status access attempt');
+    return ctx.reply('🚫 Error: You are not authorized to use this command.');
+  }
+
+  const lastCheck = cooldowns.get(`status:${userId}`);
+  const now = Date.now();
+  if (lastCheck && now - lastCheck < COOLDOWN_MS) {
+    const remainingSeconds = Math.ceil((COOLDOWN_MS - (now - lastCheck)) / 1000);
+    return ctx.reply(`⏳ Slow down! You can check status again in ${remainingSeconds}s.`);
+  }
+  cooldowns.set(`status:${userId}`, now);
+
   const statusMsg = await ctx.reply('⏳ Checking Better Stack connectivity...');
 
   try {
@@ -198,16 +214,13 @@ bot.command('status', async (ctx: Context) => {
       timeout: 10000,
     });
 
-    const authorized = ALLOWED_USERS.length === 0 || ALLOWED_USERS.includes(ctx.from!.id.toString());
     const authLine = ALLOWED_USERS.length === 0
       ? '⚠️ *Auth:* No allowlist set — all users can trigger alerts'
       : `🔒 *Auth:* Allowlist active (${ALLOWED_USERS.length} user${ALLOWED_USERS.length === 1 ? '' : 's'})`;
 
-    const policyLine = authorized
-      ? `📋 *Policy ID:* \`${POLICY_ID}\``
-      : `📋 *Policy ID:* _restricted_`;
+    const policyLine = `📋 *Policy ID:* \`${POLICY_ID}\``;
 
-    log.info({ userId: ctx.from!.id.toString(), httpStatus: response.status }, '/status check passed');
+    log.info({ userId, httpStatus: response.status }, '/status check passed');
 
     await ctx.telegram.editMessageText(
       ctx.chat!.id,
@@ -224,9 +237,9 @@ bot.command('status', async (ctx: Context) => {
     const axiosError = error as { response?: { status?: number }; message?: string };
     const detail = axiosError.response?.status
       ? `HTTP ${axiosError.response.status}`
-      : (axiosError.message ?? 'unknown error');
+      : axiosError.message;
 
-    log.error({ userId: ctx.from!.id.toString(), detail }, '/status check failed');
+    log.error({ userId, detail }, '/status check failed');
 
     await ctx.telegram.editMessageText(
       ctx.chat!.id,
@@ -234,7 +247,7 @@ bot.command('status', async (ctx: Context) => {
       undefined,
       `❌ *ASIR Bot Status*\n\n` +
         `🤖 *Bot:* Running\n` +
-        `🌐 *Better Stack API:* Unreachable (${escapeMarkdown(detail)})\n\n` +
+        `🌐 *Better Stack API:* Unreachable (${escapeMarkdown(detail ?? '')})\n\n` +
         `_The bot cannot trigger alerts until connectivity is restored._`,
       { parse_mode: 'Markdown' },
     );
