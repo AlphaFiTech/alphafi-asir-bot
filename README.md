@@ -52,18 +52,32 @@ pre-commit install
 
 ## Adding authorized users
 
-Get a user's numeric Telegram ID (e.g., via [@userinfobot](https://t.me/userinfobot)), then update the `ALLOWED_USER_IDS` secret and restart the ECS task:
+`ALLOWED_USER_IDS` is a comma-separated list stored in AWS Secrets Manager (account
+`705393004398`, profile `v3-mgmt-admin`, region `us-east-1`). Get the user's numeric
+Telegram ID (e.g., via [@userinfobot](https://t.me/userinfobot)), then **read the
+current value and append** to it — do not overwrite, or you will drop existing users.
+Finally, force a new ECS deployment so the task reloads the secret.
 
 ```bash
-aws secretsmanager update-secret \
-  --secret-id alphafi-betterstack-allowed-user-ids-production \
-  --secret-string "id1,id2,id3"
+aws sso login --profile v3-mgmt-admin   # SSO session: alphafi
 
-aws ecs update-service \
-  --cluster alphafi-production \
+# 1. Read the current list and append the new ID
+CURRENT=$(aws secretsmanager get-secret-value --profile v3-mgmt-admin --region us-east-1 \
+  --secret-id alphafi-betterstack-allowed-user-ids-production --query SecretString --output text)
+aws secretsmanager update-secret --profile v3-mgmt-admin --region us-east-1 \
+  --secret-id alphafi-betterstack-allowed-user-ids-production \
+  --secret-string "$CURRENT,<NEW_ID>"
+
+# 2. Redeploy so the running task picks up the updated secret
+aws ecs update-service --profile v3-mgmt-admin --region us-east-1 \
+  --cluster AlphafiCluster-production \
   --service alphafi-betterstack-production \
   --force-new-deployment
 ```
+
+For staging, use the `-staging` secret/service suffixes and cluster `AlphafiCluster-staging`.
+Staging and production are separate lists. See `CLAUDE.md` for the full recipe (duplicate
+guard, removal, rollout wait).
 
 ## Rate limiting
 
