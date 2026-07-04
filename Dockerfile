@@ -6,10 +6,10 @@ LABEL org.opencontainers.image.source="https://github.com/AlphaFiTech/alphafi-be
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY alphafi-betterstack/package*.json ./
 RUN npm ci --production
 
-COPY bot.ts ./
+COPY alphafi-betterstack/bot.ts ./
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD kill -0 1 || exit 1
