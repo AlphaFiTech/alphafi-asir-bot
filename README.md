@@ -11,14 +11,14 @@ AlphaFi Security and Incident Response (ASIR) Bot — bridges Telegram `/alert` 
 
 ## Environment variables
 
-| Variable | Required | Description |
-|---|---|---|
-| `TELEGRAM_BOT_TOKEN` | Yes | Telegram bot token from @BotFather |
-| `BETTER_STACK_API_TOKEN` | Yes | Better Stack API token |
-| `ESCALATION_POLICY_ID` | Yes | Better Stack escalation policy ID (numeric string) |
-| `ALLOWED_USER_IDS` | Yes | Comma-separated numeric Telegram user IDs authorized to trigger alerts |
-| `REQUESTER_EMAIL` | No | Email shown in Better Stack incidents (default: `admin@alphafi.xyz`) |
-| `LOG_LEVEL` | No | Pino log level: `fatal`, `error`, `warn`, `info`, `debug` (default: `info`) |
+| Variable                 | Required | Description                                                                 |
+| ------------------------ | -------- | --------------------------------------------------------------------------- |
+| `TELEGRAM_BOT_TOKEN`     | Yes      | Telegram bot token from @BotFather                                          |
+| `BETTER_STACK_API_TOKEN` | Yes      | Better Stack API token                                                      |
+| `ESCALATION_POLICY_ID`   | Yes      | Better Stack escalation policy ID (numeric string)                          |
+| `ALLOWED_USER_IDS`       | Yes      | Comma-separated numeric Telegram user IDs authorized to trigger alerts      |
+| `REQUESTER_EMAIL`        | No       | Email shown in Better Stack incidents (default: `admin@alphafi.xyz`)        |
+| `LOG_LEVEL`              | No       | Pino log level: `fatal`, `error`, `warn`, `info`, `debug` (default: `info`) |
 
 ## Running locally
 
@@ -46,6 +46,7 @@ make ci           # typecheck + lint + fmt check
 ```
 
 Install pre-commit hooks (requires [pre-commit](https://pre-commit.com)):
+
 ```bash
 pre-commit install
 ```

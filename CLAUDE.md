@@ -9,13 +9,14 @@ production so future changes are fast and safe.
 Authorized users are **not** in code. `ALLOWED_USER_IDS` (comma-separated numeric
 Telegram user IDs) is stored in AWS Secrets Manager and injected into the ECS task.
 
-| | Staging | Production |
-|---|---|---|
-| Secret | `alphafi-betterstack-allowed-user-ids-staging` | `alphafi-betterstack-allowed-user-ids-production` |
-| ECS service | `alphafi-betterstack-staging` | `alphafi-betterstack-production` |
-| Bot | @AlphafiAsirStagingBot | @AlphafiAsirBot |
+|             | Staging                                        | Production                                        |
+| ----------- | ---------------------------------------------- | ------------------------------------------------- |
+| Secret      | `alphafi-betterstack-allowed-user-ids-staging` | `alphafi-betterstack-allowed-user-ids-production` |
+| ECS service | `alphafi-betterstack-staging`                  | `alphafi-betterstack-production`                  |
+| Bot         | @AlphafiAsirStagingBot                         | @AlphafiAsirBot                                   |
 
 **Account / access (both environments):**
+
 - AWS account: **v3** — `705393004398`
 - AWS profile: `v3-mgmt-admin` (SSO session `alphafi`)
 - Region: `us-east-1`
@@ -73,6 +74,7 @@ To **remove** an ID, do the same read-then-write but build the new string withou
 that ID (e.g. `tr ',' '\n' | grep -vx "$ID" | paste -sd,`), then redeploy.
 
 ## Caveats learned the hard way
+
 - The README's "Adding authorized users" snippet is outdated: it overwrites instead
   of appending and uses the cluster name `alphafi-production` (the real cluster is
   `AlphafiCluster-production`). Prefer the recipe above.

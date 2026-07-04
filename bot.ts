@@ -11,7 +11,10 @@ function escapeMarkdown(text: string): string {
 }
 
 function sanitizeForApi(text: string): string {
-  return text.replace(/[\x00-\x1F\x7F]/g, '').replace(/<[^>]*>/g, '').trim();
+  return text
+    .replace(/[\x00-\x1F\x7F]/g, '')
+    .replace(/<[^>]*>/g, '')
+    .trim();
 }
 
 // Startup Guard: Validate critical environment variables
@@ -36,7 +39,9 @@ if (!/^\d+$/.test(POLICY_ID)) {
 
 // Use numeric User IDs instead of usernames (more secure/immutable)
 const ALLOWED_USERS: string[] = process.env.ALLOWED_USER_IDS
-  ? process.env.ALLOWED_USER_IDS.split(',').map((id) => id.trim()).filter(Boolean)
+  ? process.env.ALLOWED_USER_IDS.split(',')
+      .map((id) => id.trim())
+      .filter(Boolean)
   : [];
 
 if (ALLOWED_USERS.length === 0) {
@@ -134,7 +139,10 @@ bot.command('alert', async (ctx: Context) => {
         { parse_mode: 'Markdown' },
       );
 
-      log.info({ incidentId, userId, userLabel: rawUserLabel }, 'ASIR policy triggered successfully');
+      log.info(
+        { incidentId, userId, userLabel: rawUserLabel },
+        'ASIR policy triggered successfully',
+      );
     } else {
       await ctx.telegram.editMessageText(
         ctx.chat!.id,
@@ -145,10 +153,17 @@ bot.command('alert', async (ctx: Context) => {
       );
     }
   } catch (error) {
-    const axiosError = error as { response?: { status?: number; data?: unknown }; message?: string };
+    const axiosError = error as {
+      response?: { status?: number; data?: unknown };
+      message?: string;
+    };
     const statusCode = axiosError.response?.status ? `(Status: ${axiosError.response.status})` : '';
     log.error(
-      { userId, status: axiosError.response?.status, detail: axiosError.response?.data ?? axiosError.message },
+      {
+        userId,
+        status: axiosError.response?.status,
+        detail: axiosError.response?.data ?? axiosError.message,
+      },
       'ASIR policy trigger failed',
     );
 
@@ -161,7 +176,9 @@ bot.command('alert', async (ctx: Context) => {
         { parse_mode: 'Markdown' },
       );
     } else {
-      await ctx.reply(`❌ ASIR_bot Error: Failed to trigger Escalation Policy. ${statusCode}\nCheck API logs.`);
+      await ctx.reply(
+        `❌ ASIR_bot Error: Failed to trigger Escalation Policy. ${statusCode}\nCheck API logs.`,
+      );
     }
   }
 });
