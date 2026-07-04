@@ -30,6 +30,9 @@ jobs:
 
       - name: Format check
         run: npm run fmt:check
-
-      - name: Build Docker image
-        run: docker build -t alphafi-betterstack:ci .
+      # Docker image build/publish is owned by the alphafi metarepo
+      # (build-alphafi-betterstack.yml -> shared-docker-build.yml), which builds
+      # this service's Dockerfile with the metarepo as the build context. The
+      # Dockerfile's COPY paths are metarepo-root-relative (alphafi-betterstack/...),
+      # so a standalone `docker build .` here cannot resolve them. CI keeps
+      # typecheck/lint/format; image build is verified in the metarepo pipeline.
