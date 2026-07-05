@@ -231,9 +231,10 @@ bot.command('status', async (ctx: Context) => {
       timeout: 10000,
     });
 
-    const authLine = ALLOWED_USERS.length === 0
-      ? '⚠️ *Auth:* No allowlist set — all users can trigger alerts'
-      : `🔒 *Auth:* Allowlist active (${ALLOWED_USERS.length} user${ALLOWED_USERS.length === 1 ? '' : 's'})`;
+    const authLine =
+      ALLOWED_USERS.length === 0
+        ? '⚠️ *Auth:* No allowlist set — all users can trigger alerts'
+        : `🔒 *Auth:* Allowlist active (${ALLOWED_USERS.length} user${ALLOWED_USERS.length === 1 ? '' : 's'})`;
 
     const policyLine = `📋 *Policy ID:* \`${POLICY_ID}\``;
 
